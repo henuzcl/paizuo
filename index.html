@@ -60,7 +60,7 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    flex-direction: row; /* 强制单排 */
+    flex-direction: row;
     align-items: center;
     flex-wrap: nowrap; /* 绝不换行 */
     gap: 16px;
@@ -78,13 +78,6 @@
   }
   .top-bar::-webkit-scrollbar { display: none; } /* Chrome 隐藏滚动条 */
 
-  .top-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0; /* 防止被挤压 */
-  }
-
   .top-bar h1 {
     font-size: 16px;
     margin: 0;
@@ -92,6 +85,7 @@
     letter-spacing: 1px;
     color: var(--text-main);
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .divider {
@@ -115,12 +109,13 @@
     align-items: center;
     justify-content: center;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .btn:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
   .btn:active { transform: scale(0.96); }
 
   /* 下拉菜单（显示设置）点击触发 */
-  .dropdown { position: relative; }
+  .dropdown { position: relative; flex-shrink: 0; }
   .dropdown-menu {
     position: absolute;
     top: 100%; 
@@ -149,20 +144,19 @@
   .dropdown-menu input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
 
   /* =========================================================
-     主体排座区域
+     主体排座区域 - 完美居中且不裁切溢出
      ========================================================= */
   .main-container {
     height: 100vh;
     overflow: auto;
-    /* 顶栏高度约60px，留出90px确保一开始不遮挡主席台 */
-    padding: 90px 40px 60px; 
-    text-align: center; 
+    /* 加大顶部留白，让主席台离悬浮栏更远 */
+    padding: 120px 20px 60px; 
   }
+  
+  /* 关键：利用 max-content 和 margin:auto 实现居中，且超宽时可向左滑动不裁切 */
   .canvas {
-    display: inline-flex; 
-    text-align: left;
-    align-items: flex-start;
-    vertical-align: top; 
+    width: max-content;
+    margin: 0 auto;
   }
   
   .board-wrapper {
@@ -171,15 +165,17 @@
     align-items: center;
     gap: 50px;
     position: relative;
+    background: transparent;
   }
 
-  /* 悬浮控制条（主席台与观众席控制） */
+  /* 悬浮控制条（始终保持在右侧一排） */
   .section-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* 保持垂直居中，不折行 */
     justify-content: space-between;
     width: 100%;
     margin-bottom: 20px;
+    flex-wrap: nowrap;
   }
   .section-title {
     font-size: 15px;
@@ -189,7 +185,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 6px;
     white-space: nowrap;
   }
   .section-title::before {
@@ -203,9 +198,7 @@
 
   .controls {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
+    align-items: center; /* 强制单排居中 */
   }
   .controls-row {
     display: flex;
@@ -243,10 +236,7 @@
   .control-item input[type="text"] { width: 60px; }
 
   .hint-text {
-    font-size: 11px;
-    color: #94a3b8;
-    margin-right: 8px;
-    white-space: nowrap;
+    display: none; /* 隐藏多余说明，保持单排整洁 */
   }
   
   /* 区域容器 */
@@ -476,44 +466,37 @@
       top: 10px;
       width: calc(100% - 20px);
       max-width: 100%;
-      /* 保持单排 */
       flex-direction: row; 
-      justify-content: flex-start; /* 允许滚动时从左侧开始展示 */
+      justify-content: flex-start;
       padding: 10px 16px;
       gap: 10px;
       border-radius: 20px;
     }
-    .divider {
-      display: none; 
+    
+    /* 修复移动端下拉菜单被滚动条裁切的问题 */
+    .dropdown-menu {
+      position: fixed;
+      top: 75px; 
+      right: 15px;
+      margin-top: 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
+    
     .top-bar h1 {
-      font-size: 14px; /* 缩小标题字号，省出空间 */
+      font-size: 14px;
     }
     
     .main-container {
-      padding: 90px 10px 40px; /* 顶栏被强制单排，高度较小，恢复90px间距 */
-      text-align: left; 
-    }
-    
-    .canvas {
-      display: inline-block;
-      text-align: left;
+      /* 加大顶部留白 */
+      padding: 100px 10px 40px; 
     }
     
     .section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-    .controls {
-      align-items: flex-start;
-      width: 100%;
+      flex-wrap: nowrap;
     }
     .controls-row {
-      flex-wrap: wrap;
-      border-radius: 12px;
-      width: 100%;
-      justify-content: flex-start;
+      padding: 4px 10px;
+      gap: 8px;
     }
     
     .stage-section, .audience-section {
@@ -599,7 +582,6 @@
                 过道 <input id="inpAisle" type="text" placeholder="如:2,6" style="width: 60px;" value="">
               </div>
             </div>
-            <div class="hint-text">多个过道请用逗号分隔（留空则不设置）</div>
           </div>
         </div>
         <div id="audRowsContainer"></div>
@@ -651,7 +633,7 @@ const state = {
   seats: [],      
 };
 
-const STORAGE_KEY = 'seatmap.v16';
+const STORAGE_KEY = 'seatmap.v17';
 const $ = id => document.getElementById(id);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
