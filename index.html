@@ -114,13 +114,10 @@
   .btn:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
   .btn:active { transform: scale(0.96); }
 
-  /* 下拉菜单（显示设置）点击触发 */
-  .dropdown { position: relative; flex-shrink: 0; }
+  /* 全局下拉菜单（已移出 top-bar，防裁切） */
   .dropdown-menu {
-    position: absolute;
-    top: 100%; 
-    right: 0;
-    margin-top: 8px;
+    position: fixed;
+    top: 0; left: 0; /* 位置由 JS 动态计算 */
     background: #fff;
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
@@ -130,7 +127,7 @@
     flex-direction: column;
     gap: 4px;
     border: 1px solid #f1f5f9;
-    z-index: 999;
+    z-index: 9999;
   }
   .dropdown-menu.show { display: flex; }
   .dropdown-menu label {
@@ -171,11 +168,11 @@
   /* 悬浮控制条（始终保持在右侧一排） */
   .section-header {
     display: flex;
-    align-items: center; /* 保持垂直居中，不折行 */
+    align-items: center; /* 强制垂直居中 */
     justify-content: space-between;
     width: 100%;
     margin-bottom: 20px;
-    flex-wrap: nowrap;
+    flex-wrap: nowrap; /* 绝对不换行 */
   }
   .section-title {
     font-size: 15px;
@@ -198,7 +195,7 @@
 
   .controls {
     display: flex;
-    align-items: center; /* 强制单排居中 */
+    align-items: center; 
   }
   .controls-row {
     display: flex;
@@ -234,10 +231,6 @@
   }
   .control-item input:focus { box-shadow: 0 0 0 2px rgba(79,70,229,0.2); background: #fff; }
   .control-item input[type="text"] { width: 60px; }
-
-  .hint-text {
-    display: none; /* 隐藏多余说明，保持单排整洁 */
-  }
   
   /* 区域容器 */
   .stage-section, .audience-section {
@@ -472,31 +465,10 @@
       gap: 10px;
       border-radius: 20px;
     }
-    
-    /* 修复移动端下拉菜单被滚动条裁切的问题 */
-    .dropdown-menu {
-      position: fixed;
-      top: 75px; 
-      right: 15px;
-      margin-top: 0;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    }
-    
-    .top-bar h1 {
-      font-size: 14px;
-    }
+    .top-bar h1 { font-size: 14px; }
     
     .main-container {
-      /* 加大顶部留白 */
       padding: 100px 10px 40px; 
-    }
-    
-    .section-header {
-      flex-wrap: nowrap;
-    }
-    .controls-row {
-      padding: 4px 10px;
-      gap: 8px;
     }
     
     .stage-section, .audience-section {
@@ -538,19 +510,17 @@
   <div class="divider"></div>
   
   <button class="btn" id="btnOpenNames">导入名单</button>
-  
-  <div class="dropdown" id="dropdownWrap">
-    <button class="btn" id="btnShowSettings">显示设置</button>
-    <div class="dropdown-menu" id="settingsMenu">
-      <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
-      <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
-      <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
-    </div>
-  </div>
-
+  <button class="btn" id="btnShowSettings">显示设置</button>
   <button class="btn" id="btnExportImg">导出图片</button>
   <button class="btn" id="btnCopy">复制排座</button>
 </header>
+
+<!-- 显示设置下拉菜单（移出 top-bar 防止被 overflow 裁切） -->
+<div class="dropdown-menu" id="settingsMenu">
+  <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
+  <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
+  <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
+</div>
 
 <!-- 主体排座视图 -->
 <div class="main-container">
@@ -600,13 +570,14 @@
     <div class="modal-body">
       <div class="modal-col">
         <label style="color: var(--stage-color);">主席台名单</label>
-        <textarea id="txtStageNames" placeholder="请输入领导姓名，每行一人。
-若需带上单位，请用逗号分隔（如：张三,市财政局）。"></textarea>
+        <textarea id="txtStageNames" placeholder="请按顺序输入，每行一人，若需带上单位，请用逗号分隔。
+          名单与座位联动，拖动座位或插入名单都会改变座位排序"></textarea>
       </div>
       <div class="modal-col">
         <label style="color: var(--aud-color);">观众席名单</label>
-        <textarea id="txtAudNames" placeholder="请输入姓名，每行一人。
-若需带上单位，请用逗号分隔（如：李四,区发改局）。"></textarea>
+        <textarea id="txtAudNames" placeholder="示例：
+          张三，财政局
+          李四，某大学"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -633,7 +604,7 @@ const state = {
   seats: [],      
 };
 
-const STORAGE_KEY = 'seatmap.v17';
+const STORAGE_KEY = 'seatmap.v18';
 const $ = id => document.getElementById(id);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -1006,13 +977,32 @@ $('chkShowName').addEventListener('change', e => { state.showName = e.target.che
 $('chkShowUnit').addEventListener('change', e => { state.showUnit = e.target.checked; render(); });
 $('chkShowOrder').addEventListener('change', e => { state.showOrder = e.target.checked; render(); });
 
-// 修复显示设置下拉菜单交互：点击展开，点击外部收起
+// 全局下拉菜单交互：动态计算位置并展示
 const btnShowSettings = $('btnShowSettings');
 const settingsMenu = $('settingsMenu');
 
 btnShowSettings.addEventListener('click', (e) => {
   e.stopPropagation(); 
-  settingsMenu.classList.toggle('show');
+  const rect = btnShowSettings.getBoundingClientRect();
+  
+  // 如果菜单已显示，则隐藏
+  if (settingsMenu.classList.contains('show')) {
+    settingsMenu.classList.remove('show');
+    return;
+  }
+
+  // 计算菜单位置，优先在按钮下方
+  let top = rect.bottom + 8;
+  let left = rect.left;
+
+  // 如果向右会超出屏幕，则向右对齐
+  if (left + 160 > window.innerWidth) {
+    left = window.innerWidth - 160 - 10;
+  }
+
+  settingsMenu.style.top = top + 'px';
+  settingsMenu.style.left = left + 'px';
+  settingsMenu.classList.add('show');
 });
 
 document.addEventListener('click', (e) => {
