@@ -51,26 +51,33 @@
     z-index: -1;
   }
 
-  /* 顶部悬浮操作栏 */
+  /* =========================================================
+     顶部悬浮操作栏 - 重构明确布局
+     ========================================================= */
   .top-bar {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
+    flex-direction: row; /* 宽屏下横向单排 */
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap; /* 允许换行，防止在窄屏下被挤成竖排 */
-    gap: 12px;
+    gap: 20px;
     background: var(--card-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    padding: 10px 24px;
+    padding: 12px 28px;
     border-radius: 999px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--glass-border);
     z-index: 100;
-    max-width: 95vw;
+    width: max-content;
+  }
+
+  .top-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .top-bar h1 {
@@ -82,7 +89,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap; /* 禁止文字换行 */
+    white-space: nowrap;
   }
   .top-bar h1 svg {
     width: 20px; height: 20px;
@@ -107,7 +114,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    white-space: nowrap; /* 禁止按钮文字换行 */
+    white-space: nowrap;
   }
   .btn:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
   .btn.primary { background: var(--primary); color: #fff; }
@@ -131,7 +138,7 @@
     flex-direction: column;
     gap: 4px;
     border: 1px solid #f1f5f9;
-    z-index: 999; /* 提高层级，防遮挡 */
+    z-index: 999;
   }
   .dropdown-menu.show { display: flex; }
   .dropdown-menu label {
@@ -144,10 +151,13 @@
   .dropdown-menu label:hover { background: #f8fafc; }
   .dropdown-menu input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
 
-  /* 主体排座区域 */
+  /* =========================================================
+     主体排座区域
+     ========================================================= */
   .main-container {
     height: 100vh;
     overflow: auto;
+    /* PC端顶栏高度约80px，留出100px确保不遮挡 */
     padding: 100px 40px 60px; 
     text-align: center; 
   }
@@ -453,48 +463,34 @@
   ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
   /* =========================================================
-     手机端/窄屏幕 响应式适配
+     窄屏/手机端 响应式适配
      ========================================================= */
-  @media (max-width: 768px) {
+  @media (max-width: 850px) {
     .top-bar {
-      top: 0;
-      left: 0;
-      transform: none;
-      width: 100%;
-      max-width: 100%;
-      border-radius: 0;
-      padding: 12px 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: none;
-      border-bottom: 1px solid var(--glass-border);
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px 12px;
-    }
-    .top-bar h1 {
-      width: 100%;
-      justify-content: center;
-      margin-bottom: 4px;
-    }
-    .divider {
-      display: none; 
-    }
-    .dropdown-menu {
-      right: auto;
-      left: 50%;
-      transform: translateX(-50%); /* 移动端下拉菜单居中防溢出 */
+      top: 15px;
+      width: calc(100% - 30px);
+      max-width: 600px;
+      flex-direction: column; /* 关键：窄屏强制上下两排 */
+      gap: 12px;
+      padding: 12px 20px;
+      border-radius: 20px;
     }
     
-    .main-container {
-      padding: 110px 10px 40px; /* 顶部留出更多空间给换行后的顶栏 */
-      text-align: left; /* 窄屏下强制左对齐，防止居中导致的左侧被裁切无法滑动 */
+    .top-bar .divider.hide-mobile {
+      display: none; /* 隐藏中间的竖线 */
     }
+
+    .main-container {
+      /* 窄屏下顶栏变高为两排，高度约120px，增加顶部留白到140px防遮挡 */
+      padding: 140px 10px 40px;
+      text-align: left; 
+    }
+    
     .canvas {
       display: inline-block;
       text-align: left;
     }
     
-    /* 区域标题和控制条在手机端上下排列 */
     .section-header {
       flex-direction: column;
       align-items: flex-start;
@@ -516,7 +512,6 @@
       border-radius: 16px;
     }
     
-    /* 弹窗改为上下堆叠 */
     .modal {
       padding: 16px;
       width: 95%;
@@ -529,7 +524,6 @@
       min-height: 120px;
     }
     
-    /* 座位略微缩小，展示更多内容 */
     .seat {
       width: 70px;
       height: 60px;
@@ -548,34 +542,38 @@
 
 <!-- 顶部操作栏 -->
 <header class="top-bar">
-  <h1>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-    <span>智能排座系统</span>
-  </h1>
-  <div class="divider"></div>
-  
-  <button class="btn primary" id="btnOpenNames">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-    导入名单
-  </button>
-  
-  <!-- 显示设置下拉菜单 -->
-  <div class="dropdown" id="dropdownWrap">
-    <button class="btn" id="btnShowSettings">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      显示设置
+  <!-- 上/左部分 -->
+  <div class="top-group">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      <span>智能排座系统</span>
+    </h1>
+    <button class="btn primary" id="btnOpenNames">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      导入名单
     </button>
-    <div class="dropdown-menu" id="settingsMenu">
-      <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
-      <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
-      <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
-    </div>
   </div>
 
-  <div class="divider"></div>
+  <div class="divider hide-mobile"></div>
 
-  <button class="btn outline" id="btnExportImg">导出图片</button>
-  <button class="btn outline" id="btnCopy">复制排座</button>
+  <!-- 下/右部分 -->
+  <div class="top-group">
+    <!-- 显示设置下拉菜单 -->
+    <div class="dropdown" id="dropdownWrap">
+      <button class="btn" id="btnShowSettings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        显示设置
+      </button>
+      <div class="dropdown-menu" id="settingsMenu">
+        <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
+        <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
+        <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
+      </div>
+    </div>
+
+    <button class="btn outline" id="btnExportImg">导出图片</button>
+    <button class="btn outline" id="btnCopy">复制排座</button>
+  </div>
 </header>
 
 <!-- 主体排座视图 -->
@@ -660,7 +658,7 @@ const state = {
   seats: [],      
 };
 
-const STORAGE_KEY = 'seatmap.v14';
+const STORAGE_KEY = 'seatmap.v15';
 const $ = id => document.getElementById(id);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -993,7 +991,6 @@ function load() {
 
 const onLayoutInput = debounce(() => {
   syncSeatsToText(); 
-  // || 1 确保了哪怕清空输入框，也会保底为 1
   const stageRows = clamp(parseInt($('inpStageRows').value, 10) || 1, 1, 10);
   const stagePerRow = clamp(parseInt($('inpStagePerRow').value, 10) || 1, 1, 30);
   const audRows = clamp(parseInt($('inpAudRows').value, 10) || 1, 1, 30);
@@ -1022,7 +1019,6 @@ const onLayoutInput = debounce(() => {
 ['inpStageRows', 'inpStagePerRow', 'inpAudRows', 'inpAudPerRow', 'inpAisle'].forEach(id => {
   $(id).addEventListener('input', onLayoutInput);
   $(id).addEventListener('change', onLayoutInput);
-  // 强制失焦时重新渲染一遍防错
   $(id).addEventListener('blur', () => {
     if (!$(id).value || parseInt($(id).value, 10) < 1) {
       $(id).value = 1;
