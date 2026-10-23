@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>智能排座系统 | 高级版</title>
+<!-- 引入 html2canvas 用于导出图片 -->
+<script src="https://cdn.staticfile.org/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  /* 全局样式与变量 */
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-color: #f3f6f9;
+    --text-main: #1e293b;
+    --text-sub: #64748b;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+    --stage-color: #e11d48;
+    --aud-color: #3b82f6;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg-color);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden; /* 防止整个页面出现滚动条 */
+  }
+
+  /* 背景点缀，增加高级感 */
+  body::before {
+    content: '';
+    position: absolute;
+    top: -20vh; left: -10vw;
+    width: 50vw; height: 50vh;
+    background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+    z-index: -1;
+  }
+  body::after {
+    content: '';
+    position: absolute;
+    bottom: -20vh; right: -10vw;
+    width: 60vw; height: 50vh;
+    background: radial-gradient(circle, rgba(225,29,72,0.05) 0%, transparent 70%);
+    z-index: -1;
+  }
+
+  /* 顶部悬浮操作栏 */
+  .top-bar {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap; /* 允许换行，防止在窄屏下被挤成竖排 */
+    gap: 12px;
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 10px 24px;
+    border-radius: 999px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--glass-border);
+    z-index: 100;
+    max-width: 95vw;
+  }
+
+  .top-bar h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap; /* 禁止文字换行 */
+  }
+  .top-bar h1 svg {
+    width: 20px; height: 20px;
+    color: var(--primary);
+  }
+
+  .divider {
+    width: 1px; height: 20px;
+    background: #e2e8f0;
+  }
+
+  .btn {
+    border: none;
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap; /* 禁止按钮文字换行 */
+  }
+  .btn:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+  .btn.outline { border: 1px solid #e2e8f0; background: #fff; }
+  .btn.outline:hover { background: #f8fafc; }
+
+  /* 下拉菜单（显示设置）点击触发 */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute;
+    top: 100%; 
+    right: 0;
+    margin-top: 8px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    min-width: 140px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid #f1f5f9;
+    z-index: 999; /* 提高层级，防遮挡 */
+  }
+  .dropdown-menu.show { display: flex; }
+  .dropdown-menu label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text-main);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .dropdown-menu label:hover { background: #f8fafc; }
+  .dropdown-menu input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+
+  /* 主体排座区域 */
+  .main-container {
+    height: 100vh;
+    overflow: auto;
+    padding: 100px 40px 60px; 
+    text-align: center; 
+  }
+  .canvas {
+    display: inline-flex; 
+    text-align: left;
+    align-items: flex-start;
+    vertical-align: top; 
+  }
+  
+  .board-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+    position: relative;
+  }
+
+  /* 悬浮控制条（主席台与观众席控制） */
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 6px; height: 16px;
+    border-radius: 3px;
+  }
+  .stage-section .section-title::before { background: var(--stage-color); }
+  .audience-section .section-title::before { background: var(--aud-color); }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 6px 16px;
+    border-radius: 99px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #f1f5f9;
+    white-space: nowrap;
+  }
+  .control-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-sub);
+    white-space: nowrap;
+  }
+  .control-item input {
+    width: 40px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-main);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .control-item input:focus { box-shadow: 0 0 0 2px rgba(79,70,229,0.2); background: #fff; }
+  .control-item input[type="text"] { width: 60px; }
+
+  .hint-text {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+  
+  /* 区域容器 */
+  .stage-section, .audience-section {
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px 32px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    min-width: max-content;
+    position: relative;
+  }
+  .stage-section {
+    background: linear-gradient(180deg, #fffdfd 0%, #ffffff 100%);
+    border: 1px solid rgba(225,29,72,0.15);
+  }
+  .audience-section {
+    background: linear-gradient(180deg, #fdfdff 0%, #ffffff 100%);
+    border: 1px solid rgba(59,130,246,0.1);
+  }
+
+  /* 排与座位 */
+  .row { display: flex; align-items: center; margin-bottom: 16px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-label {
+    width: 50px; flex: none; text-align: right; padding-right: 16px;
+    font-size: 12px; color: #94a3b8; font-weight: 600;
+  }
+  .seats { display: flex; align-items: center; gap: 12px; }
+  .aisle { width: 30px; flex: none; }
+
+  .seat {
+    position: relative;
+    width: 90px; height: 74px;
+    border-radius: 14px;
+    background: #fff;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 8px 6px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    border: 2px solid transparent;
+  }
+  .seat.filled {
+    background: #fff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .seat.empty {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    box-shadow: none;
+  }
+  .seat.stage-seat.filled {
+    border-color: rgba(225,29,72,0.3);
+    background: linear-gradient(180deg, #fff5f5 0%, #ffffff 100%);
+  }
+  
+  .seat:hover {
+    border-color: var(--primary);
+    box-shadow: 0 8px 20px rgba(79,70,229,0.15);
+    transform: translateY(-3px);
+    z-index: 10;
+  }
+  .seat.dragging { opacity: 0.4; transform: scale(0.95); cursor: grabbing; }
+  .seat.drop-target {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 4px rgba(245,158,11,0.15), 0 8px 20px rgba(245,158,11,0.2) !important;
+    transform: translateY(-3px);
+  }
+
+  /* 座位顺序号标识 */
+  .order-input {
+    position: absolute;
+    top: -10px; left: -10px;
+    width: 32px; height: 22px;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    color: #fff;
+    background: #94a3b8;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+  }
+  .seat.filled .order-input { background: var(--primary); }
+  .seat.stage-seat.filled .order-input { background: var(--stage-color); }
+  .order-input:hover { transform: scale(1.1); }
+  .order-input:focus { width: 44px; background: #1e293b; }
+
+  .seat-name {
+    font-size: 16px; font-weight: 700; line-height: 1.2;
+    text-align: center; word-break: break-all;
+    color: var(--text-main);
+    max-width: 100%;
+  }
+  .seat-unit {
+    font-size: 11px; color: var(--text-sub); margin-top: 4px;
+    text-align: center; line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* 名单导入弹窗 */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: auto; }
+  
+  .modal {
+    background: #fff;
+    width: 90%;
+    max-width: 800px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 24px;
+    transform: translateY(20px);
+    transition: transform 0.3s;
+  }
+  .modal-overlay.active .modal { transform: translateY(0); }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .modal-header h2 { margin: 0; font-size: 18px; color: var(--text-main); }
+  .modal-close {
+    background: #f1f5f9; border: none; width: 32px; height: 32px;
+    border-radius: 50%; cursor: pointer; font-size: 16px; color: var(--text-sub);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: #e2e8f0; color: var(--text-main); }
+  
+  .modal-body {
+    display: flex;
+    gap: 20px;
+  }
+  .modal-col { flex: 1; display: flex; flex-direction: column; }
+  .modal-col label {
+    font-size: 13px; font-weight: 600; margin-bottom: 8px;
+    display: flex; justify-content: space-between;
+  }
+  .modal-col textarea {
+    flex: 1;
+    min-height: 250px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    background: #f8fafc;
+    transition: all 0.2s;
+  }
+  .modal-col textarea:focus {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+
+  .modal-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  /* 提示条 */
+  .toast {
+    position: fixed;
+    left: 50%; bottom: 40px;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b; color: #fff;
+    padding: 12px 24px; border-radius: 99px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 美化滚动条 */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 3px solid var(--bg-color); }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+  /* =========================================================
+     手机端/窄屏幕 响应式适配
+     ========================================================= */
+  @media (max-width: 768px) {
+    .top-bar {
+      top: 0;
+      left: 0;
+      transform: none;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 0;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: none;
+      border-bottom: 1px solid var(--glass-border);
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+    .top-bar h1 {
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .divider {
+      display: none; 
+    }
+    .dropdown-menu {
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%); /* 移动端下拉菜单居中防溢出 */
+    }
+    
+    .main-container {
+      padding: 110px 10px 40px; /* 顶部留出更多空间给换行后的顶栏 */
+      text-align: left; /* 窄屏下强制左对齐，防止居中导致的左侧被裁切无法滑动 */
+    }
+    .canvas {
+      display: inline-block;
+      text-align: left;
+    }
+    
+    /* 区域标题和控制条在手机端上下排列 */
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .controls {
+      align-items: flex-start;
+      width: 100%;
+    }
+    .controls-row {
+      flex-wrap: wrap;
+      border-radius: 12px;
+      width: 100%;
+      justify-content: flex-start;
+    }
+    
+    .stage-section, .audience-section {
+      padding: 16px;
+      border-radius: 16px;
+    }
+    
+    /* 弹窗改为上下堆叠 */
+    .modal {
+      padding: 16px;
+      width: 95%;
+    }
+    .modal-body {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .modal-col textarea {
+      min-height: 120px;
+    }
+    
+    /* 座位略微缩小，展示更多内容 */
+    .seat {
+      width: 70px;
+      height: 60px;
+      padding: 4px;
+    }
+    .seat-name { font-size: 13px; }
+    .seat-unit { font-size: 10px; margin-top: 2px; }
+    .order-input { width: 24px; height: 18px; font-size: 10px; top: -8px; left: -6px; }
+    .seats { gap: 8px; }
+    .aisle { width: 16px; }
+    .row-label { width: 36px; padding-right: 8px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部操作栏 -->
+<header class="top-bar">
+  <h1>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+    <span>智能排座系统</span>
+  </h1>
+  <div class="divider"></div>
+  
+  <button class="btn primary" id="btnOpenNames">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    导入名单
+  </button>
+  
+  <!-- 显示设置下拉菜单 -->
+  <div class="dropdown" id="dropdownWrap">
+    <button class="btn" id="btnShowSettings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      显示设置
+    </button>
+    <div class="dropdown-menu" id="settingsMenu">
+      <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
+      <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
+      <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn outline" id="btnExportImg">导出图片</button>
+  <button class="btn outline" id="btnCopy">复制排座</button>
+</header>
+
+<!-- 主体排座视图 -->
+<div class="main-container">
+  <div class="canvas" id="exportArea">
+    <div class="board-wrapper">
+      <!-- 主席台 -->
+      <div id="stageBoard" class="stage-section" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">主席台</div>
+          <div class="controls">
+            <div class="controls-row">
+              <div class="control-item">排数 <input id="inpStageRows" type="number" min="1" max="10" value="1"></div>
+              <div class="control-item">人数 <input id="inpStagePerRow" type="number" min="1" max="30" value="5"></div>
+            </div>
+          </div>
+        </div>
+        <div id="stageRowsContainer"></div>
+      </div>
+
+      <!-- 观众席 -->
+      <div id="audienceBoard" class="audience-section">
+        <div class="section-header">
+          <div class="section-title">观众席</div>
+          <div class="controls">
+            <div class="controls-row">
+              <div class="control-item">排数 <input id="inpAudRows" type="number" min="1" max="30" value="5"></div>
+              <div class="control-item">人数 <input id="inpAudPerRow" type="number" min="1" max="40" value="10"></div>
+              <div class="control-item" style="margin-left: 4px;">
+                过道 <input id="inpAisle" type="text" placeholder="如:2,6" style="width: 60px;" value="">
+              </div>
+            </div>
+            <div class="hint-text">多个过道请用逗号分隔（留空则不设置）</div>
+          </div>
+        </div>
+        <div id="audRowsContainer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 导入名单弹窗 -->
+<div class="modal-overlay" id="namesModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>导入名单</h2>
+      <button class="modal-close" id="btnCloseNames">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-col">
+        <label style="color: var(--stage-color);">主席台名单</label>
+        <textarea id="txtStageNames" placeholder="请输入领导姓名，每行一人。
+若需带上单位，请用逗号分隔（如：张三,市财政局）。"></textarea>
+      </div>
+      <div class="modal-col">
+        <label style="color: var(--aud-color);">观众席名单</label>
+        <textarea id="txtAudNames" placeholder="请输入姓名，每行一人。
+若需带上单位，请用逗号分隔（如：李四,区发改局）。"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" id="btnApplyNames" style="padding: 10px 24px;">完成并应用</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   状态与配置
+   ========================================================= */
+const state = {
+  stageRows: 1,
+  stagePerRow: 5,
+  audRows: 5,
+  audPerRow: 10,
+  aisles: [],     
+  showName: true,
+  showUnit: true,
+  showOrder: true,
+  seats: [],      
+};
+
+const STORAGE_KEY = 'seatmap.v14';
+const $ = id => document.getElementById(id);
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+/* =========================================================
+   核心算法：政务排座
+   ========================================================= */
+function getCenterSequence(n) {
+  const arr = new Array(n);
+  let center = Math.floor((n - 1) / 2);
+  let left = center - 1;
+  let right = center + 1;
+  let val = 1;
+  arr[center] = 1;
+  while (val < n) {
+    if (right < n) { arr[right++] = ++val; }
+    if (val < n && left >= 0) { arr[left--] = ++val; }
+  }
+  return arr;
+}
+
+function rebuildSeats() {
+  const prev = new Map(state.seats.map(s => [s.id, s]));
+  const seats = [];
+
+  for (let r = 0; r < state.stageRows; r++) {
+    for (let c = 0; c < state.stagePerRow; c++) {
+      const id = 'stage_' + r + '_' + c;
+      const p = prev.get(id);
+      seats.push({ id, type: 'stage', row: r, col: c, order: 0, name: p ? p.name : '', unit: p ? p.unit : '' });
+    }
+  }
+
+  for (let r = 0; r < state.audRows; r++) {
+    for (let c = 0; c < state.audPerRow; c++) {
+      const id = 'aud_' + r + '_' + c;
+      const p = prev.get(id);
+      seats.push({ id, type: 'audience', row: r, col: c, order: 0, name: p ? p.name : '', unit: p ? p.unit : '' });
+    }
+  }
+
+  state.seats = seats;
+  renumber();
+}
+
+function renumber() {
+  let stageOrder = 1;
+  for (let r = 0; r < state.stageRows; r++) {
+    const rowSeats = state.seats.filter(s => s.type === 'stage' && s.row === r).sort((a, b) => a.col - b.col);
+    const seq = getCenterSequence(rowSeats.length);
+    rowSeats.forEach((s, i) => { s.order = stageOrder + seq[i] - 1; });
+    stageOrder += rowSeats.length;
+  }
+
+  let audOrder = 1;
+  for (let r = 0; r < state.audRows; r++) {
+    const rowSeats = state.seats.filter(s => s.type === 'audience' && s.row === r).sort((a, b) => a.col - b.col);
+    const seq = getCenterSequence(rowSeats.length).reverse(); 
+    rowSeats.forEach((s, i) => { s.order = audOrder + seq[i] - 1; });
+    audOrder += rowSeats.length;
+  }
+}
+
+/* =========================================================
+   名单与座位双向同步
+   ========================================================= */
+function parseTextToSeats(text, type) {
+  const people = [];
+  
+  text.split(/\r?\n/).forEach(raw => {
+    const line = raw.trim();
+    if (!line) return;
+    
+    let parts = line.split(/[\t,，;；|]+/).map(x => x.trim()).filter(Boolean);
+    if (parts.length === 1) {
+      parts = line.split(/\s+/).map(x => x.trim()).filter(Boolean);
+    }
+    people.push({ name: parts[0] || '', unit: parts.slice(1).join(' ') });
+  });
+
+  const areaSeats = state.seats.filter(s => s.type === type).sort((a, b) => a.order - b.order);
+  areaSeats.forEach(s => { s.name = ''; s.unit = ''; });
+
+  for (let i = 0; i < areaSeats.length; i++) {
+    if (i < people.length) {
+      areaSeats[i].name = people[i].name;
+      areaSeats[i].unit = people[i].unit;
+    }
+  }
+}
+
+function syncSeatsToText() {
+  const stageSeats = state.seats.filter(s => s.type === 'stage').sort((a, b) => a.order - b.order);
+  const audSeats = state.seats.filter(s => s.type === 'audience').sort((a, b) => a.order - b.order);
+
+  const stageText = stageSeats.map(s => s.name ? s.name + (s.unit ? ',' + s.unit : '') : '').filter(Boolean).join('\n');
+  const audText = audSeats.map(s => s.name ? s.name + (s.unit ? ',' + s.unit : '') : '').filter(Boolean).join('\n');
+
+  if (document.activeElement !== $('txtStageNames')) $('txtStageNames').value = stageText;
+  if (document.activeElement !== $('txtAudNames')) $('txtAudNames').value = audText;
+}
+
+/* =========================================================
+   手动修改顺序号
+   ========================================================= */
+function setSeatOrder(seat, newOrder) {
+  const areaSeats = state.seats.filter(s => s.type === seat.type).sort((a, b) => a.order - b.order);
+  const people = areaSeats.map(s => ({ name: s.name, unit: s.unit }));
+  
+  const idx = areaSeats.findIndex(s => s.id === seat.id);
+  if (idx < 0) return;
+  const movedSeat = areaSeats.splice(idx, 1)[0];
+  const target = clamp(newOrder - 1, 0, areaSeats.length);
+  areaSeats.splice(target, 0, movedSeat);
+  
+  areaSeats.forEach((s, i) => { s.order = i + 1; });
+  areaSeats.forEach((s, i) => {
+    s.name = people[i] ? people[i].name : '';
+    s.unit = people[i] ? people[i].unit : '';
+  });
+
+  syncSeatsToText();
+  render();
+  toast('顺序已调整');
+}
+
+/* =========================================================
+   渲染视图
+   ========================================================= */
+function render() {
+  const stageRowsContainer = $('stageRowsContainer');
+  const audRowsContainer = $('audRowsContainer');
+  
+  stageRowsContainer.innerHTML = '';
+  audRowsContainer.innerHTML = '';
+
+  const seatMap = new Map(state.seats.map(s => [s.id, s]));
+
+  if (state.stageRows > 0) {
+    $('stageBoard').style.display = 'flex';
+    for (let r = 0; r < state.stageRows; r++) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'row';
+      const label = document.createElement('div');
+      label.className = 'row-label';
+      label.textContent = '第' + (r + 1) + '排';
+      rowEl.appendChild(label);
+
+      const seatsEl = document.createElement('div');
+      seatsEl.className = 'seats';
+      
+      for (let c = 0; c < state.stagePerRow; c++) {
+        const seat = seatMap.get('stage_' + r + '_' + c);
+        if (seat) seatsEl.appendChild(createSeatEl(seat));
+      }
+      rowEl.appendChild(seatsEl);
+      stageRowsContainer.appendChild(rowEl);
+    }
+  } else {
+    $('stageBoard').style.display = 'none';
+  }
+
+  const aisleSet = new Set(state.aisles);
+  for (let r = 0; r < state.audRows; r++) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = '第' + (r + 1) + '排';
+    rowEl.appendChild(label);
+
+    const seatsEl = document.createElement('div');
+    seatsEl.className = 'seats';
+
+    for (let c = 0; c < state.audPerRow; c++) {
+      const seat = seatMap.get('aud_' + r + '_' + c);
+      if (!seat) continue;
+      seatsEl.appendChild(createSeatEl(seat));
+      if (aisleSet.has(c + 1) && c < state.audPerRow - 1) {
+        const gap = document.createElement('div');
+        gap.className = 'aisle';
+        seatsEl.appendChild(gap);
+      }
+    }
+    rowEl.appendChild(seatsEl);
+    audRowsContainer.appendChild(rowEl);
+  }
+
+  save();
+}
+
+function createSeatEl(seat) {
+  const el = document.createElement('div');
+  el.className = 'seat ' + (seat.name ? 'filled' : 'empty') + (seat.type === 'stage' ? ' stage-seat' : '');
+  el.dataset.id = seat.id;
+  el.draggable = true;
+
+  if (state.showOrder) {
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'order-input';
+    inp.value = seat.order;
+
+    inp.addEventListener('mousedown', () => { el.draggable = false; });
+    inp.addEventListener('mouseup', () => { setTimeout(() => { if (document.activeElement !== inp) el.draggable = true; }, 0); });
+    inp.addEventListener('focus', () => { el.draggable = false; inp.select(); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    inp.addEventListener('change', () => {
+      const v = parseInt(inp.value, 10);
+      if (isNaN(v)) { inp.value = seat.order; return; }
+      setSeatOrder(seat, v); 
+    });
+    inp.addEventListener('blur', () => { el.draggable = true; inp.value = seat.order; });
+    el.appendChild(inp);
+  }
+
+  if (state.showName && seat.name) {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'seat-name';
+    nameEl.textContent = seat.name;
+    el.appendChild(nameEl);
+  }
+
+  if (state.showUnit && seat.unit) {
+    const unitEl = document.createElement('div');
+    unitEl.className = 'seat-unit';
+    unitEl.textContent = seat.unit;
+    el.appendChild(unitEl);
+  }
+
+  el.addEventListener('dragstart', e => {
+    dragId = seat.id;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', seat.id); } catch (_) {}
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    dragId = null;
+    document.querySelectorAll('.seat.drop-target').forEach(x => x.classList.remove('drop-target'));
+  });
+  el.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragId && dragId !== seat.id) el.classList.add('drop-target');
+  });
+  el.addEventListener('dragleave', () => el.classList.remove('drop-target'));
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    el.classList.remove('drop-target');
+    if (!dragId || dragId === seat.id) return;
+    handleDrop(dragId, seat.id);
+  });
+
+  return el;
+}
+
+/* =========================================================
+   拖拽插入逻辑
+   ========================================================= */
+let dragId = null;
+
+function handleDrop(sourceId, targetId) {
+  const sourceSeat = state.seats.find(s => s.id === sourceId);
+  const targetSeat = state.seats.find(s => s.id === targetId);
+  if (!sourceSeat || !targetSeat) return;
+  
+  if (sourceSeat.type !== targetSeat.type) {
+    const tmpN = sourceSeat.name; sourceSeat.name = targetSeat.name; targetSeat.name = tmpN;
+    const tmpU = sourceSeat.unit; sourceSeat.unit = targetSeat.unit; targetSeat.unit = tmpU;
+  } else {
+    const areaSeats = state.seats.filter(s => s.type === sourceSeat.type).sort((a, b) => a.order - b.order);
+    const people = areaSeats.map(s => ({ name: s.name, unit: s.unit }));
+    const fromIdx = areaSeats.findIndex(s => s.id === sourceId);
+    const toIdx = areaSeats.findIndex(s => s.id === targetId);
+    
+    if (fromIdx !== -1 && toIdx !== -1) {
+      const item = people.splice(fromIdx, 1)[0];
+      people.splice(toIdx, 0, item);
+      
+      areaSeats.forEach((s, i) => {
+        s.name = people[i].name;
+        s.unit = people[i].unit;
+      });
+    }
+  }
+  
+  syncSeatsToText();
+  render();
+  toast('人员已插入/顺延');
+}
+
+/* =========================================================
+   事件绑定与初始化
+   ========================================================= */
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {} }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    
+    // 清理脏数据：确保所有排数和人数不得小于 1
+    if (!data.stageRows || data.stageRows < 1) data.stageRows = 1;
+    if (!data.stagePerRow || data.stagePerRow < 1) data.stagePerRow = 1;
+    if (!data.audRows || data.audRows < 1) data.audRows = 1;
+    if (!data.audPerRow || data.audPerRow < 1) data.audPerRow = 1;
+
+    Object.assign(state, data);
+    return true;
+  } catch (_) { return false; }
+}
+
+const onLayoutInput = debounce(() => {
+  syncSeatsToText(); 
+  // || 1 确保了哪怕清空输入框，也会保底为 1
+  const stageRows = clamp(parseInt($('inpStageRows').value, 10) || 1, 1, 10);
+  const stagePerRow = clamp(parseInt($('inpStagePerRow').value, 10) || 1, 1, 30);
+  const audRows = clamp(parseInt($('inpAudRows').value, 10) || 1, 1, 30);
+  const audPerRow = clamp(parseInt($('inpAudPerRow').value, 10) || 1, 1, 40);
+  
+  const aisles = $('inpAisle').value.split(/[,，\s]+/).map(x => parseInt(x, 10))
+    .filter(x => !isNaN(x) && x >= 1 && x < audPerRow).filter((v, i, arr) => arr.indexOf(v) === i).sort((a, b) => a - b);
+
+  if (state.stageRows === stageRows && state.stagePerRow === stagePerRow &&
+      state.audRows === audRows && state.audPerRow === audPerRow &&
+      state.aisles.join(',') === aisles.join(',')) return;
+
+  state.stageRows = stageRows;
+  state.stagePerRow = stagePerRow;
+  state.audRows = audRows;
+  state.audPerRow = audPerRow;
+  state.aisles = aisles;
+
+  rebuildSeats();
+  parseTextToSeats($('txtStageNames').value, 'stage');
+  parseTextToSeats($('txtAudNames').value, 'audience');
+  syncSeatsToText();
+  render();
+}, 400);
+
+['inpStageRows', 'inpStagePerRow', 'inpAudRows', 'inpAudPerRow', 'inpAisle'].forEach(id => {
+  $(id).addEventListener('input', onLayoutInput);
+  $(id).addEventListener('change', onLayoutInput);
+  // 强制失焦时重新渲染一遍防错
+  $(id).addEventListener('blur', () => {
+    if (!$(id).value || parseInt($(id).value, 10) < 1) {
+      $(id).value = 1;
+      onLayoutInput();
+    }
+  });
+});
+
+$('chkShowName').addEventListener('change', e => { state.showName = e.target.checked; render(); });
+$('chkShowUnit').addEventListener('change', e => { state.showUnit = e.target.checked; render(); });
+$('chkShowOrder').addEventListener('change', e => { state.showOrder = e.target.checked; render(); });
+
+// 修复显示设置下拉菜单交互：点击展开，点击外部收起
+const btnShowSettings = $('btnShowSettings');
+const settingsMenu = $('settingsMenu');
+
+btnShowSettings.addEventListener('click', (e) => {
+  e.stopPropagation(); 
+  settingsMenu.classList.toggle('show');
+});
+
+document.addEventListener('click', (e) => {
+  if (!settingsMenu.contains(e.target) && e.target !== btnShowSettings) {
+    settingsMenu.classList.remove('show');
+  }
+});
+
+settingsMenu.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+// 弹窗控制
+$('btnOpenNames').addEventListener('click', () => {
+  syncSeatsToText(); 
+  $('namesModal').classList.add('active');
+});
+$('btnCloseNames').addEventListener('click', () => {
+  $('namesModal').classList.remove('active');
+});
+$('btnApplyNames').addEventListener('click', () => {
+  parseTextToSeats($('txtStageNames').value, 'stage');
+  parseTextToSeats($('txtAudNames').value, 'audience');
+  render();
+  $('namesModal').classList.remove('active');
+  toast('名单已应用');
+});
+
+// 导出图片
+$('btnExportImg').addEventListener('click', () => {
+  if (typeof html2canvas === 'undefined') { toast('组件未加载，请刷新'); return; }
+  const target = $('exportArea');
+  if (!target) return;
+  
+  const originalOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  toast('正在生成图片...');
+  
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.7);backdrop-filter:blur(4px);z-index:9999;display:flex;justify-content:center;align-items:center;font-size:16px;font-weight:bold;color:#4f46e5;';
+  overlay.innerHTML = '正在生成图片...';
+  document.body.appendChild(overlay);
+
+  html2canvas(target, {
+    scale: 2, 
+    useCORS: true,
+    backgroundColor: '#f3f6f9',
+    logging: false,
+    onclone: (clonedDoc) => {
+      clonedDoc.querySelectorAll('.seat').forEach(el => {
+        el.style.boxShadow = 'none'; el.style.transform = 'none';
+      });
+      clonedDoc.querySelectorAll('.stage-section, .audience-section').forEach(el => {
+        el.style.boxShadow = 'none';
+      });
+    }
+  }).then(canvas => {
+    document.body.style.overflow = originalOverflow;
+    document.body.removeChild(overlay);
+    const link = document.createElement('a');
+    link.download = '排座表_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast('图片已保存');
+  }).catch(err => {
+    document.body.style.overflow = originalOverflow;
+    document.body.removeChild(overlay);
+    console.error(err);
+    toast('生成失败，请重试');
+  });
+});
+
+// 复制排座
+$('btnCopy').addEventListener('click', () => {
+  const audSeats = state.seats.filter(s => s.type === 'audience').sort((a, b) => a.order - b.order);
+  const lines = [];
+  if (audSeats.some(s => s.name)) {
+    audSeats.forEach(s => { 
+      if (s.name) {
+        const seatNum = s.col + 1;
+        lines.push(`${s.name}${s.unit ? '('+s.unit+')' : ''} - 第${s.row + 1}排第${seatNum}号位`); 
+      }
+    });
+  }
+  if (!lines.length) { toast('观众席还没有名单'); return; }
+  const text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast('排座信息已复制')).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+});
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('已复制'); } catch (_) { toast('复制失败'); }
+  document.body.removeChild(ta);
+}
+
+function init() {
+  const loaded = load();
+  if (!loaded || !state.seats.some(s => s.type)) {
+    state.seats = [];
+    rebuildSeats();
+  }
+
+  // 恢复控制条数值
+  $('inpStageRows').value = state.stageRows;
+  $('inpStagePerRow').value = state.stagePerRow;
+  $('inpAudRows').value = state.audRows;
+  $('inpAudPerRow').value = state.audPerRow;
+  $('inpAisle').value = state.aisles.join(',');
+  $('chkShowName').checked = state.showName;
+  $('chkShowUnit').checked = state.showUnit;
+  $('chkShowOrder').checked = state.showOrder;
+
+  syncSeatsToText();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
