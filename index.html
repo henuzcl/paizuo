@@ -52,7 +52,7 @@
   }
 
   /* =========================================================
-     顶部悬浮操作栏 - 重构明确布局
+     顶部悬浮操作栏 - 强制单排，UI统一
      ========================================================= */
   .top-bar {
     position: fixed;
@@ -60,24 +60,29 @@
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    flex-direction: row; /* 宽屏下横向单排 */
+    flex-direction: row; /* 强制单排 */
     align-items: center;
-    gap: 20px;
+    flex-wrap: nowrap; /* 绝不换行 */
+    gap: 16px;
     background: var(--card-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    padding: 12px 28px;
+    padding: 12px 24px;
     border-radius: 999px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--glass-border);
     z-index: 100;
-    width: max-content;
+    max-width: 95vw;
+    overflow-x: auto; /* 极窄屏幕下允许内部横向滑动 */
+    scrollbar-width: none; /* Firefox 隐藏滚动条 */
   }
+  .top-bar::-webkit-scrollbar { display: none; } /* Chrome 隐藏滚动条 */
 
   .top-group {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0; /* 防止被挤压 */
   }
 
   .top-bar h1 {
@@ -86,24 +91,19 @@
     font-weight: 700;
     letter-spacing: 1px;
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
     white-space: nowrap;
-  }
-  .top-bar h1 svg {
-    width: 20px; height: 20px;
-    color: var(--primary);
   }
 
   .divider {
     width: 1px; height: 20px;
     background: #e2e8f0;
+    flex-shrink: 0;
   }
 
+  /* 统一所有按钮的UI */
   .btn {
-    border: none;
-    background: transparent;
+    border: 1px solid #e2e8f0;
+    background: #fff;
     padding: 8px 16px;
     border-radius: 99px;
     font-size: 13px;
@@ -113,14 +113,11 @@
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
     white-space: nowrap;
   }
-  .btn:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
-  .btn.primary { background: var(--primary); color: #fff; }
-  .btn.primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
-  .btn.outline { border: 1px solid #e2e8f0; background: #fff; }
-  .btn.outline:hover { background: #f8fafc; }
+  .btn:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
+  .btn:active { transform: scale(0.96); }
 
   /* 下拉菜单（显示设置）点击触发 */
   .dropdown { position: relative; }
@@ -157,8 +154,8 @@
   .main-container {
     height: 100vh;
     overflow: auto;
-    /* PC端顶栏高度约80px，留出100px确保不遮挡 */
-    padding: 100px 40px 60px; 
+    /* 顶栏高度约60px，留出90px确保一开始不遮挡主席台 */
+    padding: 90px 40px 60px; 
     text-align: center; 
   }
   .canvas {
@@ -439,6 +436,15 @@
     justify-content: flex-end;
     align-items: center;
   }
+  .modal-footer .btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+  }
+  .modal-footer .btn:hover {
+    background: var(--primary-hover);
+  }
 
   /* 提示条 */
   .toast {
@@ -467,22 +473,25 @@
      ========================================================= */
   @media (max-width: 850px) {
     .top-bar {
-      top: 15px;
-      width: calc(100% - 30px);
-      max-width: 600px;
-      flex-direction: column; /* 关键：窄屏强制上下两排 */
-      gap: 12px;
-      padding: 12px 20px;
+      top: 10px;
+      width: calc(100% - 20px);
+      max-width: 100%;
+      /* 保持单排 */
+      flex-direction: row; 
+      justify-content: flex-start; /* 允许滚动时从左侧开始展示 */
+      padding: 10px 16px;
+      gap: 10px;
       border-radius: 20px;
     }
-    
-    .top-bar .divider.hide-mobile {
-      display: none; /* 隐藏中间的竖线 */
+    .divider {
+      display: none; 
     }
-
+    .top-bar h1 {
+      font-size: 14px; /* 缩小标题字号，省出空间 */
+    }
+    
     .main-container {
-      /* 窄屏下顶栏变高为两排，高度约120px，增加顶部留白到140px防遮挡 */
-      padding: 140px 10px 40px;
+      padding: 90px 10px 40px; /* 顶栏被强制单排，高度较小，恢复90px间距 */
       text-align: left; 
     }
     
@@ -542,38 +551,22 @@
 
 <!-- 顶部操作栏 -->
 <header class="top-bar">
-  <!-- 上/左部分 -->
-  <div class="top-group">
-    <h1>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      <span>智能排座系统</span>
-    </h1>
-    <button class="btn primary" id="btnOpenNames">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-      导入名单
-    </button>
-  </div>
-
-  <div class="divider hide-mobile"></div>
-
-  <!-- 下/右部分 -->
-  <div class="top-group">
-    <!-- 显示设置下拉菜单 -->
-    <div class="dropdown" id="dropdownWrap">
-      <button class="btn" id="btnShowSettings">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        显示设置
-      </button>
-      <div class="dropdown-menu" id="settingsMenu">
-        <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
-        <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
-        <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
-      </div>
+  <h1>智能排座系统</h1>
+  <div class="divider"></div>
+  
+  <button class="btn" id="btnOpenNames">导入名单</button>
+  
+  <div class="dropdown" id="dropdownWrap">
+    <button class="btn" id="btnShowSettings">显示设置</button>
+    <div class="dropdown-menu" id="settingsMenu">
+      <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
+      <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
+      <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
     </div>
-
-    <button class="btn outline" id="btnExportImg">导出图片</button>
-    <button class="btn outline" id="btnCopy">复制排座</button>
   </div>
+
+  <button class="btn" id="btnExportImg">导出图片</button>
+  <button class="btn" id="btnCopy">复制排座</button>
 </header>
 
 <!-- 主体排座视图 -->
@@ -635,7 +628,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn primary" id="btnApplyNames" style="padding: 10px 24px;">完成并应用</button>
+      <button class="btn" id="btnApplyNames">完成并应用</button>
     </div>
   </div>
 </div>
@@ -658,7 +651,7 @@ const state = {
   seats: [],      
 };
 
-const STORAGE_KEY = 'seatmap.v15';
+const STORAGE_KEY = 'seatmap.v16';
 const $ = id => document.getElementById(id);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
