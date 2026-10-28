@@ -14,8 +14,8 @@
     --bg-color: #f3f6f9;
     --text-main: #1e293b;
     --text-sub: #64748b;
-    --card-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(255, 255, 255, 0.5);
+    --card-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.6);
     --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
     --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
     --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
@@ -52,73 +52,88 @@
   }
 
   /* =========================================================
-     顶部悬浮操作栏 - 强制单排，UI统一
+     顶部悬浮操作栏 - Glassmorphism 轻量化通栏风格
      ========================================================= */
   .top-bar {
     position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 0;
+    left: 0;
+    width: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
-    flex-wrap: nowrap; /* 绝不换行 */
+    justify-content: space-between; /* 左右分栏 */
     gap: 16px;
     background: var(--card-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    padding: 12px 24px;
-    border-radius: 999px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
     z-index: 100;
-    max-width: 95vw;
-    overflow-x: auto; /* 极窄屏幕下允许内部横向滑动 */
-    scrollbar-width: none; /* Firefox 隐藏滚动条 */
   }
-  .top-bar::-webkit-scrollbar { display: none; } /* Chrome 隐藏滚动条 */
+
+  .top-bar-left, .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
 
   .top-bar h1 {
     font-size: 16px;
     margin: 0;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 1px;
     color: var(--text-main);
     white-space: nowrap;
     flex-shrink: 0;
+    background: linear-gradient(90deg, var(--primary), #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .divider {
     width: 1px; height: 20px;
-    background: #e2e8f0;
+    background: #cbd5e1;
     flex-shrink: 0;
+    margin: 0 4px;
   }
 
   /* 统一所有按钮的UI */
   .btn {
-    border: 1px solid #e2e8f0;
-    background: #fff;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.6);
     padding: 8px 16px;
     border-radius: 99px;
     font-size: 13px;
     font-weight: 600;
     color: var(--text-sub);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
     flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
-  .btn:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
+  .btn:hover { 
+    background: #fff; 
+    color: var(--primary); 
+    border-color: rgba(79, 70, 229, 0.2);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+    transform: translateY(-1px);
+  }
   .btn:active { transform: scale(0.96); }
+  .btn.active { background: var(--primary); color: #fff; }
 
-  /* 全局下拉菜单（已移出 top-bar，防裁切） */
+  /* 全局下拉菜单 */
   .dropdown-menu {
     position: fixed;
     top: 0; left: 0; /* 位置由 JS 动态计算 */
-    background: #fff;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
     box-shadow: var(--shadow-lg);
     padding: 8px;
@@ -141,16 +156,14 @@
   .dropdown-menu input { accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
 
   /* =========================================================
-     主体排座区域 - 完美居中且不裁切溢出
+     主体排座区域
      ========================================================= */
   .main-container {
     height: 100vh;
     overflow: auto;
-    /* 加大顶部留白，让主席台离悬浮栏更远 */
-    padding: 120px 20px 60px; 
+    padding: 100px 20px 60px; /* 适配通栏导航高度 */
   }
   
-  /* 关键：利用 max-content 和 margin:auto 实现居中，且超宽时可向左滑动不裁切 */
   .canvas {
     width: max-content;
     margin: 0 auto;
@@ -165,14 +178,14 @@
     background: transparent;
   }
 
-  /* 悬浮控制条（始终保持在右侧一排） */
+  /* 悬浮控制条 */
   .section-header {
     display: flex;
-    align-items: center; /* 强制垂直居中 */
+    align-items: center;
     justify-content: space-between;
     width: 100%;
     margin-bottom: 20px;
-    flex-wrap: nowrap; /* 绝对不换行 */
+    flex-wrap: nowrap;
   }
   .section-title {
     font-size: 15px;
@@ -456,19 +469,23 @@
      ========================================================= */
   @media (max-width: 850px) {
     .top-bar {
-      top: 10px;
-      width: calc(100% - 20px);
-      max-width: 100%;
-      flex-direction: row; 
-      justify-content: flex-start;
       padding: 10px 16px;
-      gap: 10px;
-      border-radius: 20px;
+      flex-wrap: wrap; /* 窄屏换行 */
     }
+    .top-bar-left, .top-bar-right {
+      gap: 8px;
+      width: 100%;
+      justify-content: flex-start;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .top-bar-right { justify-content: flex-end; }
+    .top-bar-left::-webkit-scrollbar, .top-bar-right::-webkit-scrollbar { display: none; }
     .top-bar h1 { font-size: 14px; }
+    .divider { display: none; }
     
     .main-container {
-      padding: 100px 10px 40px; 
+      padding: 130px 10px 40px; 
     }
     
     .stage-section, .audience-section {
@@ -506,20 +523,30 @@
 
 <!-- 顶部操作栏 -->
 <header class="top-bar">
-  <h1>智能排座系统</h1>
-  <div class="divider"></div>
-  
-  <button class="btn" id="btnOpenNames">导入名单</button>
-  <button class="btn" id="btnShowSettings">显示设置</button>
-  <button class="btn" id="btnExportImg">导出图片</button>
-  <button class="btn" id="btnCopy">复制排座</button>
+  <div class="top-bar-left">
+    <h1>智能排座系统</h1>
+    <div class="divider"></div>
+    <button class="btn" id="btnOpenNames">导入名单</button>
+    <button class="btn" id="btnShowSettings">显示设置</button>
+    <button class="btn" id="btnSeatMode">排座模式: 插入</button>
+  </div>
+  <div class="top-bar-right">
+    <button class="btn" id="btnExportImg">导出图片</button>
+    <button class="btn" id="btnCopy">复制排座</button>
+  </div>
 </header>
 
-<!-- 显示设置下拉菜单（移出 top-bar 防止被 overflow 裁切） -->
+<!-- 显示设置下拉菜单 -->
 <div class="dropdown-menu" id="settingsMenu">
   <label><input type="checkbox" id="chkShowName" checked> 显示姓名</label>
   <label><input type="checkbox" id="chkShowUnit" checked> 显示单位</label>
   <label><input type="checkbox" id="chkShowOrder" checked> 显示顺序号</label>
+</div>
+
+<!-- 排座模式下拉菜单 -->
+<div class="dropdown-menu" id="seatModeMenu">
+  <label><input type="radio" name="seatMode" value="insert" checked> 插入顺延（后方人员后移）</label>
+  <label><input type="radio" name="seatMode" value="replace"> 替换占位（两座位互换）</label>
 </div>
 
 <!-- 主体排座视图 -->
@@ -603,9 +630,10 @@ const state = {
   showUnit: true,
   showOrder: true,
   seats: [],      
+  seatMode: 'insert', // 'insert' 插入顺延, 'replace' 替换占位
 };
 
-const STORAGE_KEY = 'seatmap.v18';
+const STORAGE_KEY = 'seatmap.v19'; // 升级版本号以防冲突
 const $ = id => document.getElementById(id);
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
@@ -881,7 +909,7 @@ function createSeatEl(seat) {
 }
 
 /* =========================================================
-   拖拽插入逻辑
+   拖拽插入/替换逻辑
    ========================================================= */
 let dragId = null;
 
@@ -890,10 +918,14 @@ function handleDrop(sourceId, targetId) {
   const targetSeat = state.seats.find(s => s.id === targetId);
   if (!sourceSeat || !targetSeat) return;
   
-  if (sourceSeat.type !== targetSeat.type) {
+  // 如果是跨区域拖拽（主席台 <-> 观众席），或者当前模式为“替换占位”
+  if (sourceSeat.type !== targetSeat.type || state.seatMode === 'replace') {
+    // 直接交换内容
     const tmpN = sourceSeat.name; sourceSeat.name = targetSeat.name; targetSeat.name = tmpN;
     const tmpU = sourceSeat.unit; sourceSeat.unit = targetSeat.unit; targetSeat.unit = tmpU;
+    toast(state.seatMode === 'replace' ? '已替换座位' : '已跨区互换');
   } else {
+    // 插入顺延模式
     const areaSeats = state.seats.filter(s => s.type === sourceSeat.type).sort((a, b) => a.order - b.order);
     const people = areaSeats.map(s => ({ name: s.name, unit: s.unit }));
     const fromIdx = areaSeats.findIndex(s => s.id === sourceId);
@@ -908,11 +940,11 @@ function handleDrop(sourceId, targetId) {
         s.unit = people[i].unit;
       });
     }
+    toast('人员已插入顺延');
   }
   
   syncSeatsToText();
   render();
-  toast('人员已插入/顺延');
 }
 
 /* =========================================================
@@ -925,11 +957,11 @@ function load() {
     if (!raw) return false;
     const data = JSON.parse(raw);
     
-    // 清理脏数据：确保所有排数和人数不得小于 1
     if (!data.stageRows || data.stageRows < 1) data.stageRows = 1;
     if (!data.stagePerRow || data.stagePerRow < 1) data.stagePerRow = 1;
     if (!data.audRows || data.audRows < 1) data.audRows = 1;
     if (!data.audPerRow || data.audPerRow < 1) data.audPerRow = 1;
+    if (!data.seatMode) data.seatMode = 'insert';
 
     Object.assign(state, data);
     return true;
@@ -978,42 +1010,58 @@ $('chkShowName').addEventListener('change', e => { state.showName = e.target.che
 $('chkShowUnit').addEventListener('change', e => { state.showUnit = e.target.checked; render(); });
 $('chkShowOrder').addEventListener('change', e => { state.showOrder = e.target.checked; render(); });
 
-// 全局下拉菜单交互：动态计算位置并展示
-const btnShowSettings = $('btnShowSettings');
-const settingsMenu = $('settingsMenu');
-
-btnShowSettings.addEventListener('click', (e) => {
-  e.stopPropagation(); 
-  const rect = btnShowSettings.getBoundingClientRect();
+// 全局下拉菜单交互逻辑封装
+function setupDropdown(btnId, menuId) {
+  const btn = $(btnId);
+  const menu = $(menuId);
   
-  // 如果菜单已显示，则隐藏
-  if (settingsMenu.classList.contains('show')) {
-    settingsMenu.classList.remove('show');
-    return;
-  }
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // 先关闭其他菜单
+    document.querySelectorAll('.dropdown-menu').forEach(m => {
+      if (m.id !== menuId) m.classList.remove('show');
+    });
 
-  // 计算菜单位置，优先在按钮下方
-  let top = rect.bottom + 8;
-  let left = rect.left;
+    if (menu.classList.contains('show')) {
+      menu.classList.remove('show');
+      return;
+    }
 
-  // 如果向右会超出屏幕，则向右对齐
-  if (left + 160 > window.innerWidth) {
-    left = window.innerWidth - 160 - 10;
-  }
+    const rect = btn.getBoundingClientRect();
+    let top = rect.bottom + 8;
+    let left = rect.left;
 
-  settingsMenu.style.top = top + 'px';
-  settingsMenu.style.left = left + 'px';
-  settingsMenu.classList.add('show');
-});
+    if (left + menu.offsetWidth > window.innerWidth) {
+      left = window.innerWidth - menu.offsetWidth - 10;
+    }
+    
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.add('show');
+  });
+}
+
+setupDropdown('btnShowSettings', 'settingsMenu');
+setupDropdown('btnSeatMode', 'seatModeMenu');
 
 document.addEventListener('click', (e) => {
-  if (!settingsMenu.contains(e.target) && e.target !== btnShowSettings) {
-    settingsMenu.classList.remove('show');
+  if (!e.target.closest('.dropdown-menu') && !e.target.closest('.btn')) {
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
   }
 });
 
-settingsMenu.addEventListener('click', (e) => {
-  e.stopPropagation();
+$('settingsMenu').addEventListener('click', (e) => e.stopPropagation());
+$('seatModeMenu').addEventListener('click', (e) => e.stopPropagation());
+
+// 排座模式切换
+document.querySelectorAll('input[name="seatMode"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    state.seatMode = e.target.value;
+    $('btnSeatMode').textContent = '排座模式: ' + (state.seatMode === 'insert' ? '插入' : '替换');
+    save();
+    toast('已切换为' + (state.seatMode === 'insert' ? '插入顺延' : '替换占位') + '模式');
+    $('seatModeMenu').classList.remove('show');
+  });
 });
 
 // 弹窗控制
@@ -1119,6 +1167,10 @@ function init() {
   $('chkShowName').checked = state.showName;
   $('chkShowUnit').checked = state.showUnit;
   $('chkShowOrder').checked = state.showOrder;
+
+  // 恢复排座模式
+  document.querySelector(`input[name="seatMode"][value="${state.seatMode}"]`).checked = true;
+  $('btnSeatMode').textContent = '排座模式: ' + (state.seatMode === 'insert' ? '插入' : '替换');
 
   syncSeatsToText();
   render();
