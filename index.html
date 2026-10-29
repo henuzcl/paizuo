@@ -576,7 +576,7 @@
               <div class="control-item">排数 <input id="inpAudRows" type="number" min="1" max="30" value="5"></div>
               <div class="control-item">人数 <input id="inpAudPerRow" type="number" min="1" max="40" value="6"></div>
               <div class="control-item" style="margin-left: 4px;">
-                过道 <input id="inpAisle" type="text" placeholder="多个过道使用逗号分隔，如:2,6" style="width: 240px;" value="">
+                过道 <input id="inpAisle" type="text" placeholder="多个过道使用逗号分隔，如:2,6" style="width: 180px;" value="">
               </div>
             </div>
           </div>
@@ -995,7 +995,8 @@ const onLayoutInput = debounce(() => {
   render();
 }, 400);
 
-['inpStageRows', 'inpStagePerRow', 'inpAudRows', 'inpAudPerRow', 'inpAisle'].forEach(id => {
+// 排数/人数等数字框：为空或非法时兜底为 1
+['inpStageRows', 'inpStagePerRow', 'inpAudRows', 'inpAudPerRow'].forEach(id => {
   $(id).addEventListener('input', onLayoutInput);
   $(id).addEventListener('change', onLayoutInput);
   $(id).addEventListener('blur', () => {
@@ -1004,6 +1005,25 @@ const onLayoutInput = debounce(() => {
       onLayoutInput();
     }
   });
+});
+
+// 过道输入框：允许为空，不做兜底为 1 的处理
+function normalizeAisleInput() {
+  const maxCol = clamp(parseInt($('inpAudPerRow').value, 10) || 1, 1, 40);
+  const vals = $('inpAisle').value
+    .split(/[,，\s]+/)
+    .map(x => parseInt(x, 10))
+    .filter(x => !isNaN(x) && x >= 1 && x < maxCol);
+  const uniq = [...new Set(vals)].sort((a, b) => a - b);
+  // 没有任何有效数字 → 置空，显示 placeholder 注释
+  $('inpAisle').value = uniq.length ? uniq.join(',') : '';
+}
+
+$('inpAisle').addEventListener('input', onLayoutInput);
+$('inpAisle').addEventListener('change', onLayoutInput);
+$('inpAisle').addEventListener('blur', () => {
+  normalizeAisleInput();
+  onLayoutInput();
 });
 
 $('chkShowName').addEventListener('change', e => { state.showName = e.target.checked; render(); });
